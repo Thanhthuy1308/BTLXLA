@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Generated analysis output
+data/processed/
+outputs/
+
+# Image data stays local; manifests and documentation are versioned separately.
+data/raw/
+data/benchmark/
+data/staging/
+
+# Locally extracted utilities used only for dataset preparation.
+tools/
