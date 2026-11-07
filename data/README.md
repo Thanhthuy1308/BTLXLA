@@ -90,9 +90,9 @@ range, entropy, and Canny edge density before and after enhancement.
 - Treat an increase in edge density as an observation, not automatically an improvement:
   strong enhancement can also amplify noise.
 
-## Local-Use Policy
+## Use and Redistribution Notice
 
-Do not commit or redistribute image files through this repository. Review the terms of
-each dataset before any use beyond the course project. ExDark metadata and annotations
-have research-use terms, while underlying third-party photographs may carry separate
-rights.
+This repository includes the selected benchmark images and generated evaluation
+artefacts so the course-project experiment can be reproduced. Review the terms of each
+source dataset before reuse beyond this project. ExDark metadata and annotations have
+research-use terms, while underlying third-party photographs may carry separate rights.

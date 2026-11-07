@@ -3,13 +3,11 @@ __pycache__/
 *.py[cod]
 .venv/
 
-# Generated analysis output
+# Generated analysis output not selected as evidence for the repository.
 data/processed/
-outputs/
 
-# Image data stays local; manifests and documentation are versioned separately.
+# Raw download and temporary preparation locations.
 data/raw/
-data/benchmark/
 data/staging/
 
 # Locally extracted utilities used only for dataset preparation.
