@@ -1,0 +1,12 @@
+{
+  "sample_count": 54,
+  "operation_counts": {
+    "gamma+contrast_stretch": 25,
+    "gamma": 7,
+    "identity": 16,
+    "contrast_stretch": 6
+  },
+  "dark_count": 32,
+  "low_contrast_count": 31,
+  "figures_saved": 12
+}

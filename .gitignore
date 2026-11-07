@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Generated analysis output not selected as evidence for the repository.
+data/processed/
+
+# Raw download and temporary preparation locations.
+data/raw/
+data/staging/
+
+# Locally extracted utilities used only for dataset preparation.
+tools/

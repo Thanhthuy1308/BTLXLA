@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "btlxla"
+version = "0.1.0"
+description = "Histogram-based image brightness and contrast analysis"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "opencv-python>=4.8",
+    "Pillow>=10.0",
+]
+
+[tool.setuptools]
+py-modules = ["analysis", "datasets"]
