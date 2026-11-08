@@ -1,0 +1,6 @@
+selection_reason,image_id,source,condition_label,operation,delta_mean_gray,delta_std_gray,delta_dynamic_range,delta_entropy,delta_edge_ratio
+largest_brightness_gain,LOL_LOW_10,LOL,underexposed,gamma+contrast_stretch,142.792225,48.579958653999284,214.0,2.911862850189209,0.16457083333333333
+largest_contrast_gain,SICE_07,SICE,underexposed,gamma+contrast_stretch,79.80439799556319,67.70297321667466,237.0,0.5393002033233643,0.033800575998939306
+largest_edge_density_gain,LOL_LOW_12,LOL,underexposed,gamma+contrast_stretch,123.69529166666666,48.44908242644492,198.0,2.714203357696533,0.35515
+brightness_reduction_case,LCV_06,derived,synthetic_low_contrast,contrast_stretch,-13.839512500000012,43.92773587407078,170.0,1.4458966255187988,0.0656
+unchanged_control,SICE_08,SICE,overexposed,identity,0.0,0.0,0.0,0.0,0.0
