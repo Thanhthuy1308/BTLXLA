@@ -87,6 +87,8 @@ def save_figure(record, transformed: dict[str, tuple[np.ndarray, object, str]], 
     columns = ["original", *CONFIGS]
     figure, axes = plt.subplots(3, len(columns), figsize=(18, 10))
     figure.suptitle(f"{record.image_id}: {reason}", fontsize=14, fontweight="bold")
+    # A shared source column means every candidate is evaluated against the exact
+    # same pixels, histogram scale, and Canny-threshold configuration.
     images = {"original": (original, original_metrics, "input"), **transformed}
     for index, name in enumerate(columns):
         image, metrics, operation = images[name]
@@ -154,6 +156,8 @@ def main() -> None:
 
     # Stage 4: render one complete original/histogram/Canny comparison per chosen
     # case. The baseline row supplies the shared source record for all candidates.
+    # Render only systematic representatives; the review CSV keeps the full grid
+    # without committing a large, redundant collection of figures.
     for reason, baseline_row in choose_cases(rows):
         record, original, before = prepared[baseline_row["image_id"]]
         transformed = {}

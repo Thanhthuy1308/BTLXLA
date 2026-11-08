@@ -45,5 +45,7 @@ def read_manifest(path: str | Path) -> list[SampleRecord]:
             # metadata and derived-variant provenance were introduced.
             for field in ("parent_image_id", "variant", "illumination_condition", "environment", "dataset_split"):
                 row.setdefault(field, "")
+            # Convert at the I/O boundary so downstream stages operate on a typed,
+            # immutable provenance record rather than a free-form CSV dictionary.
             records.append(SampleRecord(**row))
         return records

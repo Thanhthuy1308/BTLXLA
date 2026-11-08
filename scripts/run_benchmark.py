@@ -61,6 +61,8 @@ def main() -> None:
             **flatten_metrics("before", original_metrics),
             **flatten_metrics("after", enhanced_metrics),
         }
+        # Each row couples source provenance, the selected decision, and numeric
+        # evidence, making a later report assertion traceable to one input image.
         results.append(result)
         # Figures are intentionally capped by default to keep report generation fast;
         # pass --figures -1 when a figure is needed for every benchmark record.

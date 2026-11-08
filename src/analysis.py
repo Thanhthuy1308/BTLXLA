@@ -66,8 +66,25 @@ class EnhancementConfig:
 
 
 def read_bgr(path: str | Path) -> np.ndarray:
-    """Load an image in OpenCV BGR order and fail early for invalid manifest paths."""
-    image = cv2.imread(str(path), cv2.IMREAD_COLOR)
+    """Load an image in OpenCV BGR order and fail early for invalid manifest paths.
+
+    The byte-buffer fallback supports valid Windows paths containing non-ASCII
+    characters, which OpenCV's path-based decoder may reject on some builds.
+    """
+    path_text = str(path)
+    try:
+        path_text.encode("ascii")
+        image = cv2.imread(path_text, cv2.IMREAD_COLOR)
+    except UnicodeEncodeError:
+        image = None
+    if image is None:
+        # Read bytes through Python's Unicode-aware filesystem layer, then let
+        # OpenCV decode the image content rather than the filesystem path.
+        try:
+            encoded = np.fromfile(path_text, dtype=np.uint8)
+            image = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+        except OSError:
+            image = None
     if image is None:
         raise ValueError(f"Unable to read image: {path}")
     return image
