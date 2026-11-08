@@ -45,6 +45,8 @@ def read_rows(path: Path) -> list[dict[str, object]]:
     if not rows:
         raise ValueError(f"No benchmark rows found in {path}")
 
+    # Convert numeric fields once at the file boundary. This prevents accidental
+    # string comparisons or concatenation in downstream aggregations.
     for row in rows:
         for metric in METRICS:
             row[f"before_{metric}"] = float(row[f"before_{metric}"])
@@ -58,6 +60,8 @@ def read_rows(path: Path) -> list[dict[str, object]]:
 def summarise(rows: list[dict[str, object]]) -> dict[str, object]:
     """Calculate descriptive statistics without inferring subjective image quality."""
     summary: dict[str, object] = {"count": len(rows)}
+    # Preserve both central tendency and direction of change. Neither is treated as
+    # a standalone image-quality score; the figures provide the qualitative check.
     for metric in METRICS:
         deltas = [float(row[f"delta_{metric}"]) for row in rows]
         summary[metric] = {
@@ -77,6 +81,7 @@ def group_rows(rows: list[dict[str, object]], group_type: str) -> list[dict[str,
         grouped[str(row[group_type])].append(row)
 
     result: list[dict[str, object]] = []
+    # Stable ordering keeps generated reports diff-friendly between reruns.
     for group_name in sorted(grouped):
         group = grouped[group_name]
         record: dict[str, object] = {
@@ -113,6 +118,8 @@ def choose_representatives(rows: list[dict[str, object]]) -> list[dict[str, obje
     """Select distinct, data-driven cases for qualitative inspection in the report."""
     non_identity = [row for row in rows if row["operation"] != "identity"]
     controls = [row for row in rows if row["operation"] == "identity"]
+    # Use explicit diagnostic purposes instead of selecting visually pleasing
+    # samples after the result has been seen.
     candidates = [
         ("largest_brightness_gain", max(non_identity, key=lambda row: float(row["delta_mean_gray"]))),
         ("largest_contrast_gain", max(non_identity, key=lambda row: float(row["delta_dynamic_range"]))),
@@ -267,6 +274,8 @@ def write_findings(
         )
         for row in representatives
     )
+    # Compose the report directly from measured artifacts so prose cannot drift
+    # away from the benchmark data it describes.
     text = f"""# Benchmark Analysis Findings
 
 ## Scope
@@ -316,6 +325,8 @@ def main() -> None:
 
     rows = read_rows(args.metrics)
     summary = summarise(rows)
+    # Summarise by origin, intended condition, and chosen rule: each answers a
+    # different research question and guards against misleading global averages.
     group_summary = [
         record
         for group_type in ("source", "condition_label", "operation")
