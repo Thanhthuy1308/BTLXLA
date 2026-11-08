@@ -49,6 +49,22 @@ class ImageMetrics:
     edge_ratio: float
 
 
+@dataclass(frozen=True)
+class EnhancementConfig:
+    """One complete, reproducible set of histogram-enhancement rules.
+
+    Keeping the thresholds and transformation parameters together prevents a
+    calibration experiment from silently mixing values from different runs.
+    The default reproduces the configuration used by the baseline benchmark.
+    """
+
+    dark_mean_threshold: float = DARK_MEAN_THRESHOLD
+    low_contrast_std_threshold: float = LOW_CONTRAST_STD_THRESHOLD
+    gamma: float = GAMMA_FOR_DARK_IMAGES
+    percentile_low: float = PERCENTILE_LOW
+    percentile_high: float = PERCENTILE_HIGH
+
+
 def read_bgr(path: str | Path) -> np.ndarray:
     """Load an image in OpenCV BGR order and fail early for invalid manifest paths."""
     image = cv2.imread(str(path), cv2.IMREAD_COLOR)
@@ -105,14 +121,14 @@ def measure(image_bgr: np.ndarray) -> ImageMetrics:
     )
 
 
-def is_dark(metrics: ImageMetrics) -> bool:
+def is_dark(metrics: ImageMetrics, threshold: float = DARK_MEAN_THRESHOLD) -> bool:
     """Apply the documented brightness rule used to trigger gamma correction."""
-    return metrics.mean_gray < DARK_MEAN_THRESHOLD
+    return metrics.mean_gray < threshold
 
 
-def is_low_contrast(metrics: ImageMetrics) -> bool:
+def is_low_contrast(metrics: ImageMetrics, threshold: float = LOW_CONTRAST_STD_THRESHOLD) -> bool:
     """Apply the documented contrast rule used to trigger robust stretching."""
-    return metrics.std_gray < LOW_CONTRAST_STD_THRESHOLD
+    return metrics.std_gray < threshold
 
 
 def gamma_correct(image_bgr: np.ndarray, gamma: float = GAMMA_FOR_DARK_IMAGES) -> np.ndarray:
@@ -143,24 +159,31 @@ def contrast_stretch(image_bgr: np.ndarray, low: float = PERCENTILE_LOW, high: f
     return result
 
 
-def enhance(image_bgr: np.ndarray, original: ImageMetrics) -> tuple[np.ndarray, str]:
+def enhance(
+    image_bgr: np.ndarray,
+    original: ImageMetrics,
+    config: EnhancementConfig | None = None,
+) -> tuple[np.ndarray, str]:
     """Apply transparent enhancement rules and return an audit-friendly operation label.
 
     Gamma is applied first when the original is dark. Contrast is then evaluated both
     before and after gamma because brightening alone does not necessarily restore tonal
     separation. The returned label is persisted in ``metrics.csv``.
     """
+    # A missing configuration deliberately maps to the documented baseline so
+    # existing callers keep exactly the same behaviour.
+    rules = config or EnhancementConfig()
     result = image_bgr
     operations: list[str] = []
     # Step 1: recover visibility in shadow-dominated images.
-    if is_dark(original):
-        result = gamma_correct(result)
+    if is_dark(original, rules.dark_mean_threshold):
+        result = gamma_correct(result, rules.gamma)
         operations.append("gamma")
 
     # Step 2: stretch tonal range only when original or gamma-adjusted contrast is low.
     after_gamma = measure(result)
-    if is_low_contrast(original) or is_low_contrast(after_gamma):
-        result = contrast_stretch(result)
+    if is_low_contrast(original, rules.low_contrast_std_threshold) or is_low_contrast(after_gamma, rules.low_contrast_std_threshold):
+        result = contrast_stretch(result, rules.percentile_low, rules.percentile_high)
         operations.append("contrast_stretch")
 
     return result, "+".join(operations) if operations else "identity"

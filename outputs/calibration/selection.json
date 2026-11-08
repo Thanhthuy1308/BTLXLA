@@ -1,0 +1,114 @@
+{
+  "leading_candidate": "narrow_percentile_stretch",
+  "calibration_max_side": 960,
+  "selection_rule": "Highest balanced ranking score; verify representative images before treating it as the final configuration.",
+  "candidate_parameters": {
+    "baseline": {
+      "dark_mean_threshold": 85.0,
+      "low_contrast_std_threshold": 45.0,
+      "gamma": 0.6,
+      "percentile_low": 2.0,
+      "percentile_high": 98.0
+    },
+    "gentle_detection": {
+      "dark_mean_threshold": 75.0,
+      "low_contrast_std_threshold": 40.0,
+      "gamma": 0.7,
+      "percentile_low": 2.0,
+      "percentile_high": 98.0
+    },
+    "balanced_gamma": {
+      "dark_mean_threshold": 85.0,
+      "low_contrast_std_threshold": 40.0,
+      "gamma": 0.65,
+      "percentile_low": 2.0,
+      "percentile_high": 98.0
+    },
+    "strong_recovery": {
+      "dark_mean_threshold": 95.0,
+      "low_contrast_std_threshold": 50.0,
+      "gamma": 0.5,
+      "percentile_low": 2.0,
+      "percentile_high": 98.0
+    },
+    "narrow_percentile_stretch": {
+      "dark_mean_threshold": 85.0,
+      "low_contrast_std_threshold": 45.0,
+      "gamma": 0.6,
+      "percentile_low": 5.0,
+      "percentile_high": 95.0
+    }
+  },
+  "summary": [
+    {
+      "config_id": "narrow_percentile_stretch",
+      "sample_count": 54,
+      "low_light_samples": 40,
+      "control_samples": 14,
+      "low_light_mean_gain": 61.51264747047569,
+      "low_light_range_gain": 148.475,
+      "low_light_entropy_gain": 1.4190259627997874,
+      "low_light_abs_edge_ratio_change": 0.0938348403664907,
+      "control_abs_mean_shift": 0.0,
+      "control_abs_range_shift": 0.0,
+      "control_changed_fraction": 0.0,
+      "ranking_score": 1.0008592158224272
+    },
+    {
+      "config_id": "baseline",
+      "sample_count": 54,
+      "low_light_samples": 40,
+      "control_samples": 14,
+      "low_light_mean_gain": 58.62885403180078,
+      "low_light_range_gain": 141.225,
+      "low_light_entropy_gain": 1.4482971638441087,
+      "low_light_abs_edge_ratio_change": 0.07866504615474791,
+      "control_abs_mean_shift": 0.0,
+      "control_abs_range_shift": 0.0,
+      "control_changed_fraction": 0.0,
+      "ranking_score": 0.9647777495267911
+    },
+    {
+      "config_id": "balanced_gamma",
+      "sample_count": 54,
+      "low_light_samples": 40,
+      "control_samples": 14,
+      "low_light_mean_gain": 55.41743792513587,
+      "low_light_range_gain": 141.47549999999973,
+      "low_light_entropy_gain": 1.4501150280237198,
+      "low_light_abs_edge_ratio_change": 0.07452233234215806,
+      "control_abs_mean_shift": 0.0,
+      "control_abs_range_shift": 0.0,
+      "control_changed_fraction": 0.0,
+      "ranking_score": 0.9533935468368301
+    },
+    {
+      "config_id": "gentle_detection",
+      "sample_count": 54,
+      "low_light_samples": 40,
+      "control_samples": 14,
+      "low_light_mean_gain": 52.172249741157756,
+      "low_light_range_gain": 141.575,
+      "low_light_entropy_gain": 1.4388342559337617,
+      "low_light_abs_edge_ratio_change": 0.07188704212313625,
+      "control_abs_mean_shift": 0.0,
+      "control_abs_range_shift": 0.0,
+      "control_changed_fraction": 0.0,
+      "ranking_score": 0.9396474182315546
+    },
+    {
+      "config_id": "strong_recovery",
+      "sample_count": 54,
+      "low_light_samples": 40,
+      "control_samples": 14,
+      "low_light_mean_gain": 67.569799308795,
+      "low_light_range_gain": 142.05,
+      "low_light_entropy_gain": 1.446016725897789,
+      "low_light_abs_edge_ratio_change": 0.08837802608308165,
+      "control_abs_mean_shift": 1.4837213403880074,
+      "control_abs_range_shift": 6.428571428571429,
+      "control_changed_fraction": 0.14285714285714285,
+      "ranking_score": 0.8289047774480633
+    }
+  ]
+}
