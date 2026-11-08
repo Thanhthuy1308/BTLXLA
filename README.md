@@ -27,19 +27,6 @@ The input is never modified. The selected output directory receives:
 - `<image>_comparison.png` — original/enhanced images, grayscale histograms, and Canny edges;
 - `<image>_metrics.json` — detected conditions, selected operation, configuration, and before/after measurements.
 
-## Representative Sample-Set Result
-
-The CLI was run with the baseline configuration on three deliberately different
-samples from the local benchmark: one severely dark image, one controlled
-low-contrast variant, and one normal-light control. This compact set exercises all
-three expected decision paths without presenting the result as a full dataset claim.
-
-| Sample | Input condition | Detected condition | Operation | Mean gray (before → after) | Robust range P98−P02 (before → after) | Entropy (before → after) | Edge density (before → after) |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: |
-| `LOL_LOW_03` | Underexposed | Dark + low contrast | `gamma+contrast_stretch` | 9.36 → 144.43 | 20 → 238 | 4.34 → 7.47 | 0.000% → 9.658% |
-| `LCV_01` | Synthetic low contrast | Low contrast | `contrast_stretch` | 101.60 → 120.62 | 84 → 254 | 6.02 → 7.47 | 1.390% → 3.815% |
-| `LOL_CTRL_01` | Normal-light control | Neither | `identity` | 95.03 → 95.03 | 216 → 216 | 7.49 → 7.49 | 5.216% → 5.216% |
-
 ### Interpretation
 
 - `LOL_LOW_03` triggers both rules because its mean gray level and standard
