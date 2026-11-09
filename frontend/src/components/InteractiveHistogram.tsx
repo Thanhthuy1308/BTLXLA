@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
-import { Box, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Box, ButtonBase, Stack, Typography } from "@mui/material";
 import { count, fixed } from "../lib/format";
-import { tone } from "../lib/theme";
+import { radius, tone } from "../lib/theme";
+import PillTabs from "./PillTabs";
 
 type Series = { key: "before" | "after"; label: string; hist: number[]; mean: number; color: string };
 type Scale = "linear" | "log";
@@ -78,14 +79,25 @@ export default function InteractiveHistogram({ before, after, meanBefore, meanAf
 
   return <Box>
     <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", gap: 1, mb: 1 }}>
-      <ToggleButtonGroup size="small" value={visible} onChange={(_, value: string[]) => value.length && setVisible(value)} aria-label="Chuỗi dữ liệu hiển thị" sx={{ "& .MuiToggleButton-root": { textTransform: "none", px: 1.25, fontWeight: 650, gap: .75 } }}>
-        {series.map((item) => <ToggleButton key={item.key} value={item.key} disabled={unchanged && item.key === "after"}><Box component="span" sx={{ width: 10, height: 10, borderRadius: .5, bgcolor: item.color, opacity: .8 }} />{item.label}</ToggleButton>)}
-      </ToggleButtonGroup>
-      <ToggleButtonGroup size="small" exclusive value={scale} onChange={(_, value: Scale | null) => value && setScale(value)} aria-label="Thang trục tung" sx={{ "& .MuiToggleButton-root": { textTransform: "none", px: 1.25, fontWeight: 650 } }}>
-        <ToggleButton value="linear">Thang tuyến tính</ToggleButton><ToggleButton value="log">Thang log</ToggleButton>
-      </ToggleButtonGroup>
+      <Box role="group" aria-label="Chuỗi dữ liệu hiển thị" sx={{ display: "inline-flex", gap: .5, p: .5, borderRadius: radius.pill, bgcolor: tone.surfaceContainer }}>
+        {series.map((item) => {
+          const on = visible.includes(item.key);
+          const locked = unchanged && item.key === "after";
+          return <ButtonBase key={item.key} aria-pressed={on} disabled={locked} focusRipple
+            onClick={() => setVisible((current) => on ? (current.length > 1 ? current.filter((key) => key !== item.key) : current) : [...current, item.key])}
+            sx={{ minHeight: 30, px: 1.5, gap: .75, borderRadius: radius.pill, fontSize: 13, fontWeight: 650, transition: "background-color .2s, color .2s",
+              bgcolor: on ? "#fff" : "transparent", border: `1px solid ${on ? tone.outline : "transparent"}`, color: on ? tone.onSurface : tone.onSurfaceVariant,
+              opacity: locked ? .45 : 1, "&.Mui-focusVisible": { outline: `2px solid ${tone.primary}`, outlineOffset: 2 } }}>
+            <Box component="span" sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: item.color, opacity: on ? .9 : .35 }} />{item.label}
+          </ButtonBase>;
+        })}
+      </Box>
+      <PillTabs variant="segmented" label="Thang trục tung" value={scale} onChange={setScale} options={[
+        { value: "linear", label: "Thang tuyến tính" },
+        { value: "log", label: "Thang log" },
+      ]} />
     </Stack>
-    <Box ref={frame} sx={{ position: "relative", border: `1px solid ${tone.outline}`, borderRadius: 1 }}>
+    <Box ref={frame} sx={{ position: "relative", border: `1px solid ${tone.outline}`, borderRadius: radius.card, overflow: "hidden", bgcolor: "#fff" }}>
       <svg width={width} height={HEIGHT} role="img" tabIndex={0} onKeyDown={keys} onPointerMove={pick} onPointerLeave={() => setLevel(null)} onBlur={() => setLevel(null)}
         aria-label={`Histogram 256 mức xám. Ảnh gốc μ = ${fixed(meanBefore)}${unchanged ? "" : `, sau xử lý μ = ${fixed(meanAfter)}`}. Dùng phím mũi tên để đọc từng mức xám.`}
         style={{ display: "block", outline: "none", touchAction: "pan-y" }}>
