@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+build/
 .venv/
 
 # Generated analysis output not selected as evidence for the repository.
@@ -9,6 +11,13 @@ data/processed/
 # Raw download and temporary preparation locations.
 data/raw/
 data/staging/
+
+# Per-upload web artifacts; generated at runtime and never part of the benchmark.
+web/runtime/
+
+# Frontend dependencies and reproducible production bundles.
+frontend/node_modules/
+frontend/dist/
 
 # Locally extracted utilities used only for dataset preparation.
 tools/
