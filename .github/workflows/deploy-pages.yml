@@ -1,0 +1,73 @@
+# Builds the React interface and publishes it to GitHub Pages.
+#
+# The analysis API runs on Render (see render.yaml). Set the repository
+# variable API_BASE_URL to its address, e.g. https://btlxla.onrender.com.
+name: Deploy frontend to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Resolve the API address
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::warning::Repository variable API_BASE_URL is not set; image analysis will not work on GitHub Pages."
+          fi
+          echo "VITE_API_BASE=$API_BASE_URL" >> "$GITHUB_ENV"
+          echo "API address: ${API_BASE_URL:-<none>}"
+
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: |
+          npm run build
+          # GitHub Pages has no SPA routing: serve the app for unknown paths such as /studio.
+          cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
