@@ -165,6 +165,17 @@ class AnalysisApiTests(unittest.TestCase):
         self.assertEqual(events, [{"type": "error", "error": events[0]["error"]}])
         self.assertIn("Không đọc được ảnh", events[0]["error"])
 
+    def test_app_icons_are_served(self) -> None:
+        """Every logo file referenced by index.html is reachable from the server."""
+        if not (ROOT / "frontend" / "dist" / "favicon.svg").exists():
+            self.skipTest("frontend/dist is not built")
+        for name, mimetype in (("favicon.svg", "image/svg+xml"), ("apple-touch-icon.png", "image/png"),
+                               ("icon-192.png", "image/png"), ("icon-512.png", "image/png")):
+            response = self.client.get(f"/{name}")
+            self.assertEqual(response.status_code, 200, name)
+            self.assertEqual(response.mimetype, mimetype, name)
+            response.close()
+
     def test_health_endpoint(self) -> None:
         """The wake-up ping answers quickly with a fixed payload."""
         response = self.client.get("/api/health")
