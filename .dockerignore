@@ -1,0 +1,17 @@
+# Only the server code, the analysis package and the frontend sources are needed.
+.git
+.github
+.claude
+.venv
+**/__pycache__
+*.egg-info
+build
+data
+outputs
+assets
+docs
+tests
+scripts
+frontend/node_modules
+frontend/dist
+web/runtime

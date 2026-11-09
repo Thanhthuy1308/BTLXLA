@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import shutil
 import sys
 import time
@@ -75,6 +76,48 @@ OPERATION_LABELS = {
 app = Flask(__name__)
 # A course-demo interface should fail predictably on impractically large inputs.
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+
+
+def allowed_origins() -> set[str]:
+    """Origins allowed to call the API from another site (e.g. GitHub Pages).
+
+    Read from ``ALLOWED_ORIGINS`` (comma-separated, ``*`` for any) on every
+    request so deployments and tests can change it without a restart. Empty by
+    default: the bundled interface is served from the same origin as the API.
+    """
+    return {origin.strip().rstrip("/") for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",") if origin.strip()}
+
+
+@app.after_request
+def add_cors_headers(response: Response) -> Response:
+    """Let the GitHub Pages frontend call this API and read downloaded file names."""
+    origin = request.headers.get("Origin", "").rstrip("/")
+    allowed = allowed_origins()
+    if origin and ("*" in allowed or origin in allowed):
+        response.headers["Access-Control-Allow-Origin"] = "*" if "*" in allowed else origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+        response.headers.add("Vary", "Origin")
+    return response
+
+
+def prune_runtime(max_age_hours: float | None = None) -> int:
+    """Delete analysis jobs older than ``RUNTIME_TTL_HOURS`` (default 24 h).
+
+    Called before each upload so a long-running server never fills its disk;
+    the staging folder is skipped because it only holds in-flight uploads.
+    """
+    hours = max_age_hours if max_age_hours is not None else float(os.environ.get("RUNTIME_TTL_HOURS", "24"))
+    if not RUNTIME_DIR.is_dir() or hours <= 0:
+        return 0
+    cutoff = time.time() - hours * 3600
+    removed = 0
+    for job_dir in RUNTIME_DIR.iterdir():
+        if job_dir.is_dir() and job_dir.name != "staging" and job_dir.stat().st_mtime < cutoff:
+            shutil.rmtree(job_dir, ignore_errors=True)
+            removed += 1
+    return removed
 
 
 def allowed_image(filename: str) -> bool:
@@ -583,11 +626,18 @@ def stage_upload() -> tuple[Path, str] | tuple[Response, int]:
     filename = secure_filename(upload.filename)
     if not filename or not allowed_image(filename):
         return jsonify(error="Chỉ hỗ trợ tệp JPG, JPEG và PNG."), 400
+    prune_runtime()
     staging_dir = RUNTIME_DIR / "staging"
     staging_dir.mkdir(parents=True, exist_ok=True)
     staging_path = staging_dir / f"{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
     upload.save(staging_path)
     return staging_path, filename
+
+
+@app.get("/api/health")
+def health():
+    """Cheap liveness check; the frontend calls it early to wake a sleeping free-tier server."""
+    return jsonify(status="ok")
 
 
 @app.post("/api/analyze")
@@ -671,5 +721,7 @@ def file_too_large(_error):
 
 
 if __name__ == "__main__":
+    # Local development server. Production (Docker on Render) runs
+    # gunicorn instead; see the Dockerfile.
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
-    app.run(debug=True, port=5000)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "1") == "1", port=int(os.environ.get("PORT", "5000")))

@@ -1,0 +1,26 @@
+# Render Blueprint for the analysis server.
+#
+# In Render: New → Blueprint → connect this GitHub repository. Render builds the
+# Dockerfile and redeploys automatically when the server code on `main` changes.
+services:
+  - type: web
+    name: btlxla
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # Documentation and benchmark changes do not trigger a rebuild.
+    buildFilter:
+      paths:
+        - src/**
+        - web/app.py
+        - frontend/**
+        - Dockerfile
+        - .dockerignore
+        - pyproject.toml
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://thanhthuy1308.github.io
+      - key: RUNTIME_TTL_HOURS
+        value: "6"
