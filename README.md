@@ -2,148 +2,86 @@
 
 ## Abstract
 
-Digital images captured under insufficient or uneven illumination may suffer from poor brightness and low contrast, making visual details and object boundaries difficult to identify. This project proposes a histogram-based approach for analysing image brightness and contrast. For each input image, the system computes the 256-bin grayscale histogram, the mean gray level, and the standard deviation to identify dark or low-contrast conditions; bright images are reported but deliberately left unchanged. Gamma Correction and Contrast Stretching are then applied according to the detected condition. The effectiveness of each enhancement is evaluated by comparing image statistics, histograms, and Canny edge-detection results before and after processing. The outcome is a transparent tool that shows which rule fired, what each transformation did, and whether the improved brightness and contrast also produce clearer edges.
+Ảnh số được chụp trong điều kiện thiếu sáng hoặc ánh sáng không đồng đều thường có độ sáng kém và độ tương phản thấp, khiến các chi tiết và đường biên của đối tượng khó nhận biết. Đề tài đề xuất phương pháp phân tích độ sáng và độ tương phản của ảnh dựa trên Histogram. Với mỗi ảnh đầu vào, hệ thống tính Histogram 256 mức xám, mức xám trung bình và độ lệch chuẩn để nhận biết ảnh tối hoặc ảnh có độ tương phản thấp; ảnh có xu hướng sáng chỉ được nhận xét và giữ nguyên. Sau đó, chương trình áp dụng hiệu chỉnh Gamma (Gamma Correction) và kéo giãn tương phản (Contrast Stretching) tùy theo tình trạng ảnh. Hiệu quả của từng phép cải thiện được đánh giá bằng cách so sánh các thông số thống kê, Histogram và kết quả phát hiện biên Canny trước và sau khi xử lý. Kết quả là một công cụ minh bạch, cho thấy quy tắc nào đã được áp dụng, mỗi phép biến đổi đã thay đổi ảnh như thế nào, và việc cải thiện độ sáng, độ tương phản có giúp đường biên rõ hơn hay không.
 
-**Keywords:** Image enhancement, histogram analysis, brightness, contrast, Gamma Correction, Contrast Stretching, Canny edge detection.
+**Keywords:** cải thiện ảnh, phân tích Histogram, độ sáng, độ tương phản, hiệu chỉnh Gamma, kéo giãn tương phản, phát hiện biên Canny.
 
 ## Sample Visualization
 
-![Two sample images with grayscale histograms](assets/sample_cover_histograms.png)
+![Hai ảnh mẫu kèm Histogram mức xám](assets/sample_cover_histograms.png)
 
 ## Quick start
 
-Requirements: **Python 3.11+** and **Node.js 20.19+ or 22.12+** (Node is only needed to build the web interface).
+Yêu cầu: **Python 3.11+** và **Node.js 20.19+ hoặc 22.12+** (Node chỉ cần để build giao diện web).
 
 ```powershell
-# 1. Python environment and dependencies
+# 1. Tạo môi trường Python và cài thư viện
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e .
 
-# 2. Build the web interface (frontend/dist is not committed)
+# 2. Build giao diện web (thư mục frontend/dist không được commit)
 cd frontend
 npm ci
 npm run build
 cd ..
 
-# 3. Start the server
+# 3. Chạy server
 python web/app.py
 ```
 
-Open `http://127.0.0.1:5000`. On macOS/Linux, activate the environment with
-`source .venv/bin/activate` instead.
+Mở `http://127.0.0.1:5000` trên trình duyệt. Trên macOS/Linux, kích hoạt môi
+trường bằng `source .venv/bin/activate`.
 
-Step 2 is required: Flask serves the built files from `frontend/dist`, so
-skipping it leaves the web page blank. Rebuild after any change in `frontend/src`.
+Bước 2 là bắt buộc: Flask phục vụ giao diện từ `frontend/dist`, nếu bỏ qua bước
+này trang web sẽ trống. Cần build lại sau mỗi lần sửa mã trong `frontend/src`.
 
-## Web interface
-
-The interface is in Vietnamese, matching the course report. It runs the same
-analysis code as the command-line scripts and the benchmark.
-
-- **Giới thiệu (landing page):** an animated pixel-conversion demo of a real
-  dark sample and its enhanced output; μ, σ and the histogram update with the scan.
-- **Phân tích ảnh (studio):** drag-and-drop, file picker, or Ctrl+V paste of one
-  JPG/JPEG/PNG up to 10 MB; analysis starts immediately. Four sample images, one
-  per classification case, are available for demos.
-- **Real progress:** the server streams each pipeline step as it finishes
-  (decode → grayscale → statistics → enhancement → comparison) with its duration.
-- **Result tabs:**
-  - *Tổng quan* — conclusion card, before/after slider, threshold gauges for μ and σ,
-    an interactive histogram (hover for exact pixel counts, linear/log scale), and a
-    written assessment.
-  - *Các bước biến đổi* — the numbered pipeline (original → grayscale → gamma →
-    stretch) with μ, σ and a mini histogram per step, plus the formulas with the
-    parameters actually used (e.g. `r_min`, `r_max`).
-  - *So sánh biên Canny* — edge maps or edges overlaid on the image, with edge ratios.
-  - *So sánh nhiều ảnh* — every image analysed in this browser tab in one table;
-    click a row to reopen it, or export the table as CSV.
-- **Downloads:** enhanced image, combined comparison figure, histogram figure,
-  and the measurements as CSV and JSON.
-
-Uploads and generated files are written to `web/runtime/` (ignored by Git).
-This folder is not cleaned automatically; delete it when it grows.
-
-### Frontend development
-
-For live reloading while editing `frontend/src`, run Flask and the Vite dev
-server side by side; Vite proxies `/api`, `/results` and `/samples` to Flask.
-
-```powershell
-python web/app.py          # terminal 1, port 5000
-cd frontend; npm run dev   # terminal 2, open the URL Vite prints
-```
+Ảnh tải lên và kết quả phân tích được lưu trong `web/runtime/` (đã bỏ qua trong
+Git). Thư mục này không tự dọn, hãy xóa khi dung lượng lớn.
 
 ## Decision rules
 
-All values are on the 8-bit grayscale scale and are defined in `src/analysis.py`.
+Mọi giá trị tính trên thang mức xám 8 bit và được định nghĩa trong `src/analysis.py`.
 
-| Rule | Condition | Action |
+| Quy tắc | Điều kiện | Xử lý |
 | --- | --- | --- |
-| Dark image | μ < 85 | Gamma correction, `s = 255·(r/255)^0.60` |
-| Low contrast | σ < 45 (before or after gamma) | Contrast stretching between the 2nd and 98th percentiles, on the L channel of Lab so colours are preserved |
-| Bright image | μ > 170 | Reported only; no transformation |
-| Otherwise | — | Image left unchanged |
+| Ảnh tối | μ < 85 | Hiệu chỉnh Gamma, `s = 255·(r/255)^0.60` |
+| Tương phản thấp | σ < 45 (trước hoặc sau Gamma) | Kéo giãn tương phản giữa phân vị 2% và 98%, thực hiện trên kênh L của không gian màu Lab để giữ nguyên màu sắc |
+| Ảnh có xu hướng sáng | μ > 170 | Chỉ nhận xét, không biến đổi |
+| Các trường hợp còn lại | — | Giữ nguyên ảnh |
 
-Canny edges are computed after a 5×5 Gaussian blur (σ = 1.4) with fixed
-thresholds 50/150, identical for the images before and after processing, so the
-edge ratios are comparable. The edge ratio is supporting evidence, not a quality
-score: new continuous edges indicate recovered detail, while scattered responses
-can be amplified noise.
+Biên Canny được tính sau khi làm mịn ảnh bằng bộ lọc Gaussian 5×5 (σ = 1,4) với
+ngưỡng kép cố định 50/150, áp dụng giống nhau cho ảnh trước và sau xử lý để tỉ lệ
+biên có thể so sánh được. Tỉ lệ biên chỉ là chỉ số hỗ trợ, không phải điểm chất
+lượng ảnh: đường biên liền mạch xuất hiện thêm cho thấy chi tiết đã lộ rõ, còn các
+điểm rời rạc có thể là nhiễu bị khuếch đại.
 
-The choice of thresholds is documented in `docs/rule-validation.md`.
+Cơ sở lựa chọn các ngưỡng được trình bày trong `docs/rule-validation.md`.
 
 ## Command-line usage
 
 ```powershell
-# One image: enhanced output, comparison figure and metrics JSON
+# Xử lý một ảnh: lưu ảnh sau xử lý, ảnh so sánh và tệp số liệu JSON
 python scripts/process_image.py --input path\to\image.jpg --output data\processed\demo
 
-# Regenerate the web demo images in frontend/public/samples
+# Tạo lại các ảnh mẫu cho giao diện web trong frontend/public/samples
 python scripts/build_web_samples.py
 ```
 
-## Tests
-
-```powershell
-python -m unittest discover -s tests
-```
-
-The tests cover the four classification cases, the reference metrics (PSNR/SSIM),
-Canny noise robustness, and the web API: the JSON and streaming endpoints, every
-download link, and Vietnamese error messages for invalid uploads.
-
 ## HTTP API
 
-| Method and path | Purpose |
+| Phương thức và đường dẫn | Chức năng |
 | --- | --- |
-| `POST /api/analyze` | Multipart field `image`; returns the full result as JSON. |
-| `POST /api/analyze/stream` | Same input; returns newline-delimited JSON: one `step` event per finished pipeline step, then a `result` (or `error`) event. |
-| `GET /results/<job_id>/<file>` | Files produced by one analysis; add `?download=1` to download. |
-
-## Project structure
-
-```text
-src/analysis.py        Measurement, classification, enhancement, figures
-src/datasets.py        Benchmark manifest loading
-web/app.py             Flask server and API (Vietnamese result text)
-frontend/src/          React + TypeScript + MUI interface
-  lib/                 Theme, API types, streaming client, history
-  components/          Reusable UI pieces (slider, gauges, histogram, …)
-  pages/               Landing page, studio, result tabs
-frontend/public/samples/  Demo images built by scripts/build_web_samples.py
-scripts/               Benchmark, calibration, analysis and demo tools
-tests/                 Unit and API tests
-docs/                  Benchmark and rule-validation notes
-outputs/               Committed experiment results
-```
+| `POST /api/analyze` | Trường multipart `image`; trả về toàn bộ kết quả dạng JSON. |
+| `POST /api/analyze/stream` | Đầu vào giống trên; trả về JSON theo từng dòng: mỗi bước xử lý hoàn tất gửi một sự kiện `step`, cuối cùng là sự kiện `result` (hoặc `error`). |
+| `GET /results/<job_id>/<file>` | Các tệp do một lần phân tích tạo ra; thêm `?download=1` để tải xuống. |
 
 ## Experimental Evaluation
 
-The reproducible benchmark contains 54 images: natural underexposed and
-low-light scenes, normal/overexposed controls, personal smoke tests, and six
-controlled low-contrast variants. Run the full experiment and aggregate its
-evidence with:
+Bộ benchmark có thể tái lập gồm 54 ảnh: ảnh thiếu sáng và ảnh chụp trong điều kiện
+ánh sáng yếu tự nhiên, ảnh đối chứng bình thường hoặc quá sáng, ảnh cá nhân dùng để
+kiểm tra nhanh, và sáu biến thể tương phản thấp được tạo có kiểm soát. Chạy toàn bộ
+thực nghiệm và tổng hợp kết quả bằng các lệnh:
 
 ```powershell
 python scripts/run_benchmark.py --output outputs/benchmark
@@ -151,35 +89,34 @@ python scripts/analyze_benchmark.py --metrics outputs/benchmark/metrics.csv --ou
 python scripts/evaluate_lol_references.py --output outputs/analysis/full_reference
 ```
 
-The current run selected gamma plus contrast stretching for 25 samples, gamma
-only for 7, contrast stretching only for 6, and preserved 16 with the identity
-operation. The controlled checks behaved as expected: all 21 underexposed
-samples triggered the dark rule; all six derived low-contrast images triggered
-contrast stretching; and all six normal controls plus seven overexposed samples
-were preserved unchanged.
+Ở lần chạy hiện tại, chương trình chọn hiệu chỉnh Gamma kết hợp kéo giãn tương phản
+cho 25 ảnh, chỉ hiệu chỉnh Gamma cho 7 ảnh, chỉ kéo giãn tương phản cho 6 ảnh và giữ
+nguyên 16 ảnh. Các phép kiểm tra đối chứng cho kết quả đúng như mong đợi: cả 21 ảnh
+thiếu sáng đều thỏa quy tắc ảnh tối; cả sáu ảnh tương phản thấp được tạo có kiểm soát
+đều được kéo giãn tương phản; sáu ảnh đối chứng bình thường và bảy ảnh quá sáng đều
+được giữ nguyên.
 
-Across all samples, mean grayscale increased by 41.04 on average, robust
-dynamic range by 106.19, and Canny edge density by 0.0499. These changes are
-evidence of tonal and structural response, not an absolute image-quality score:
-the darkest examples may reveal both useful detail and amplified noise. See
-`outputs/analysis/findings.md` for the generated discussion and selected
-qualitative cases.
+Trên toàn bộ tập ảnh, mức xám trung bình tăng trung bình 41,04, dải động (phân vị
+2–98%) tăng 106,19 và mật độ biên Canny tăng 0,0499. Các thay đổi này thể hiện phản
+ứng về tông màu và cấu trúc của ảnh, không phải điểm chất lượng tuyệt đối: với những
+ảnh tối nhất, chi tiết hữu ích có thể lộ ra cùng với nhiễu bị khuếch đại. Phần thảo
+luận chi tiết và các trường hợp tiêu biểu được trình bày trong
+`outputs/analysis/findings.md`.
 
-> **Note:** the committed benchmark outputs were produced before Canny gained its
-> Gaussian pre-blur and the 50/150 thresholds (previously 100/200 on the raw
-> image). The brightness, contrast, PSNR and SSIM figures are unaffected, but the
-> edge-density values in `outputs/` and the 0.0499 figure above will change when
-> the benchmark is re-run.
+> **Lưu ý:** kết quả benchmark đã commit được tạo trước khi bước Canny được bổ sung
+> làm mịn Gaussian và đổi sang ngưỡng 50/150 (trước đây là 100/200 trên ảnh gốc).
+> Các số liệu về độ sáng, độ tương phản, PSNR và SSIM không bị ảnh hưởng, nhưng
+> các giá trị mật độ biên trong `outputs/` và con số 0,0499 ở trên sẽ thay đổi khi
+> chạy lại benchmark.
 
 ### Full-reference result on paired LOL images
 
-Only the 14 LOL records that declare a spatially aligned normal-light partner
-are eligible for full-reference measurement; the remaining benchmark images are
-deliberately excluded because PSNR and SSIM require the same scene and pixel
-geometry. Against this subset, the enhanced output raised mean PSNR from **8.04
-to 16.76 dB** (+8.72 dB; 13/14 pairs improved) and mean grayscale SSIM from
-**0.208 to 0.523** (+0.315; 14/14 pairs improved). `LOL_LOW_12` is the one
-PSNR exception (-0.74 dB), despite a +0.216 SSIM gain, so the method should be
-understood as a reproducible baseline rather than a guarantee of per-pixel
-fidelity. The per-pair CSV, JSON summary, and plot are written to
-`outputs/analysis/full_reference/`.
+Chỉ 14 ảnh LOL có ảnh đối chiếu đủ sáng, cùng cảnh và căn chỉnh đúng từng điểm ảnh
+mới đủ điều kiện để đánh giá có tham chiếu; các ảnh còn lại trong benchmark được loại
+ra vì PSNR và SSIM yêu cầu cùng một cảnh và cùng hình học điểm ảnh. Trên tập con này,
+ảnh sau xử lý nâng PSNR trung bình từ **8,04 lên 16,76 dB** (+8,72 dB; 13/14 cặp
+cải thiện) và SSIM mức xám trung bình từ **0,208 lên 0,523** (+0,315; 14/14 cặp cải
+thiện). `LOL_LOW_12` là trường hợp duy nhất PSNR giảm (−0,74 dB) dù SSIM tăng
+0,216, vì vậy phương pháp nên được xem là một baseline có thể tái lập, không phải
+bảo đảm độ chính xác trên từng điểm ảnh. Tệp CSV theo từng cặp ảnh, tệp tổng hợp
+JSON và biểu đồ được lưu trong `outputs/analysis/full_reference/`.
