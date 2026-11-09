@@ -1,3 +1,4 @@
+import { API_BASE, REMOTE_API, apiUrl, withApiBase } from "./config";
 import type { AnalysisResult } from "./types";
 
 /** Pipeline steps in execution order; keys match PIPELINE_STEPS in web/app.py. */
@@ -24,10 +25,23 @@ type StreamEvent =
  * The server answers with newline-delimited JSON; every "step" line is real
  * progress from the Python pipeline, so the checklist never runs ahead of it.
  */
+/** Vietnamese message for a request that never reached, or lost, the server. */
+function connectionError() {
+  return new Error(REMOTE_API
+    ? `Không kết nối được server phân tích (${API_BASE}). Server có thể đang khởi động, hãy thử lại sau khoảng một phút.`
+    : "Không kết nối được server phân tích. Hãy kiểm tra server Flask đang chạy.");
+}
+
 export async function analyzeImage(file: File, onStep: (key: StepKey, seconds: number) => void): Promise<{ result: AnalysisResult; elapsed: number }> {
   const body = new FormData();
   body.append("image", file);
-  const response = await fetch("/api/analyze/stream", { method: "POST", body });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl("/api/analyze/stream"), { method: "POST", body });
+  } catch {
+    // fetch only rejects on network failure: the server is down, asleep, or unreachable.
+    throw connectionError();
+  }
   if (!response.ok || !response.body) {
     let message = "";
     try { message = ((await response.json()) as { error?: string }).error ?? ""; } catch { /* non-JSON error page */ }
@@ -38,9 +52,15 @@ export async function analyzeImage(file: File, onStep: (key: StepKey, seconds: n
   const decoder = new TextDecoder();
   let buffer = "";
   for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch {
+      // The connection dropped mid-stream (server restarted, free instance went to sleep…).
+      throw connectionError();
+    }
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
     let newline = buffer.indexOf("\n");
     while (newline >= 0) {
       const line = buffer.slice(0, newline).trim();
@@ -49,7 +69,7 @@ export async function analyzeImage(file: File, onStep: (key: StepKey, seconds: n
       if (!line) continue;
       const event = JSON.parse(line) as StreamEvent;
       if (event.type === "step") onStep(event.step, event.seconds);
-      else if (event.type === "result") return { result: event.result, elapsed: event.elapsed };
+      else if (event.type === "result") return { result: withApiBase(event.result), elapsed: event.elapsed };
       else throw new Error(event.error);
     }
   }

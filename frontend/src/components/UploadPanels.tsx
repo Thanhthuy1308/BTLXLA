@@ -3,6 +3,7 @@ import { Box, ButtonBase, LinearProgress, Stack, Typography } from "@mui/materia
 import { fixed } from "../lib/format";
 import { PIPELINE_STEPS } from "../lib/pipeline";
 import type { StepKey, StepTimes } from "../lib/pipeline";
+import { assetUrl } from "../lib/config";
 import { SAMPLES } from "../lib/samples";
 import { tone } from "../lib/theme";
 
@@ -12,7 +13,7 @@ export type RunStatus = "idle" | "running" | "done" | "error";
 export function SampleGrid({ onPick, disabled, compact = false }: { onPick: (key: string) => void; disabled: boolean; compact?: boolean }) {
   return <Box sx={{ display: "grid", gridTemplateColumns: compact ? "1fr 1fr" : { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: compact ? 1 : 1.5 }}>
     {SAMPLES.map((sample) => <ButtonBase key={sample.key} disabled={disabled} onClick={() => onPick(sample.key)} focusRipple sx={{ display: "block", textAlign: "left", borderRadius: 1, p: .5, "&:hover": { bgcolor: tone.surfaceContainer } }}>
-      <Box component="img" src={`/samples/${sample.file}`} alt="" sx={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block", borderRadius: .75, bgcolor: tone.surfaceContainer }} />
+      <Box component="img" src={assetUrl(`samples/${sample.file}`)} alt="" sx={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block", borderRadius: .75, bgcolor: tone.surfaceContainer }} />
       <Typography sx={{ mt: .5, fontSize: compact ? 12 : 13, fontWeight: 650, lineHeight: 1.25 }}>{sample.label}</Typography>
     </ButtonBase>)}
   </Box>;
@@ -73,5 +74,7 @@ export function RunningState({ times, seconds }: { times: StepTimes; seconds: nu
     <LinearProgress variant={doneCount ? "determinate" : "indeterminate"} value={(doneCount / PIPELINE_STEPS.length) * 100} sx={{ height: 4 }} />
     <Typography variant="h3" component="p" sx={{ mt: 3 }}>{PIPELINE_STEPS[index].label}…</Typography>
     <Typography color="text.secondary" sx={{ mt: .8 }} aria-live="polite">Bước {index + 1}/{PIPELINE_STEPS.length} · {fixed(seconds, 1)} giây</Typography>
+    {/* No step after ~10 s almost always means a sleeping server is booting. */}
+    {doneCount === 0 && seconds > 10 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>Server có thể đang khởi động lại sau thời gian không dùng; lần đầu có thể mất tới một phút.</Typography>}
   </Box></Box>;
 }

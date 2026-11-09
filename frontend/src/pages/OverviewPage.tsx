@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Box, Button, Container, Stack, Typography } from "@mui/material";
 import PixelConverter from "../components/PixelConverter";
+import { assetUrl } from "../lib/config";
 import { tone } from "../lib/theme";
 
 const HIGHLIGHTS = [
@@ -23,7 +24,7 @@ export default function OverviewPage() {
         </Stack>
       </Box>
       <Box>
-        <PixelConverter originalSrc="/samples/hero_original.jpg" enhancedSrc="/samples/hero_enhanced.jpg" />
+        <PixelConverter originalSrc={assetUrl("samples/hero_original.jpg")} enhancedSrc={assetUrl("samples/hero_enhanced.jpg")} />
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>Ảnh mẫu LOL_LOW_10 (bộ dữ liệu LOL). Ảnh sau xử lý do chính pipeline Python của chương trình tạo ra; μ, σ và histogram được tính trực tiếp từ hai ảnh hiển thị.</Typography>
       </Box>
     </Box>
