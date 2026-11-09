@@ -2,7 +2,11 @@
 
 ## Abstract
 
-Ảnh số được chụp trong điều kiện thiếu sáng hoặc ánh sáng không đồng đều thường có độ sáng kém và độ tương phản thấp, khiến các chi tiết và đường biên của đối tượng khó nhận biết. Đề tài đề xuất phương pháp phân tích độ sáng và độ tương phản của ảnh dựa trên Histogram. Với mỗi ảnh đầu vào, hệ thống tính Histogram 256 mức xám, mức xám trung bình và độ lệch chuẩn để nhận biết ảnh tối hoặc ảnh có độ tương phản thấp; ảnh có xu hướng sáng chỉ được nhận xét và giữ nguyên. Sau đó, chương trình áp dụng hiệu chỉnh Gamma (Gamma Correction) và kéo giãn tương phản (Contrast Stretching) tùy theo tình trạng ảnh. Hiệu quả của từng phép cải thiện được đánh giá bằng cách so sánh các thông số thống kê, Histogram và kết quả phát hiện biên Canny trước và sau khi xử lý. Kết quả là một công cụ minh bạch, cho thấy quy tắc nào đã được áp dụng, mỗi phép biến đổi đã thay đổi ảnh như thế nào, và việc cải thiện độ sáng, độ tương phản có giúp đường biên rõ hơn hay không.
+Ảnh kỹ thuật số được chụp trong điều kiện thiếu sáng hoặc ánh sáng không đồng đều, thường có độ sáng kém và độ tương phản thấp, khiến các chi tiết và đường biên của đối tượng khó nhận biết.
+
+Đề tài này đề xuất phương pháp phân tích độ sáng và độ tương phản của ảnh dựa trên Histogram. Với mỗi ảnh đầu vào, hệ thống tính Histogram 256 mức xám, mức xám trung bình và độ lệch chuẩn để nhận biết ảnh tối hoặc ảnh có độ tương phản thấp; ảnh có xu hướng sáng chỉ được nhận xét và giữ nguyên. Sau đó, chương trình áp dụng hiệu chỉnh Gamma (Gamma Correction) và kéo giãn tương phản (Contrast Stretching) tùy theo tình trạng ảnh.
+
+Hiệu quả của từng phép cải thiện được đánh giá bằng cách so sánh các thông số thống kê, Histogram và kết quả phát hiện biên Canny trước và sau khi xử lý. Kết quả là một công cụ minh bạch, cho thấy quy tắc nào đã được áp dụng, mỗi phép biến đổi đã thay đổi ảnh như thế nào, và việc cải thiện độ sáng, độ tương phản có giúp đường biên rõ hơn hay không.
 
 **Keywords:** cải thiện ảnh, phân tích Histogram, độ sáng, độ tương phản, hiệu chỉnh Gamma, kéo giãn tương phản, phát hiện biên Canny.
 
