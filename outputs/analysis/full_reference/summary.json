@@ -1,0 +1,21 @@
+{
+  "pair_count": 14,
+  "psnr_db": {
+    "mean_before": 8.03824811297517,
+    "mean_after": 16.761918381414727,
+    "mean_delta": 8.723670268439559,
+    "median_delta": 9.523512295501828,
+    "improved_count": 13,
+    "worsened_count": 1,
+    "unchanged_count": 0
+  },
+  "ssim": {
+    "mean_before": 0.20836585522159604,
+    "mean_after": 0.5230889122777592,
+    "mean_delta": 0.3147230570561632,
+    "median_delta": 0.34563500468943464,
+    "improved_count": 14,
+    "worsened_count": 0,
+    "unchanged_count": 0
+  }
+}

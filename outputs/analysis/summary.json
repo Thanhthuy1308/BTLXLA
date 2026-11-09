@@ -1,38 +1,38 @@
 {
   "count": 54,
   "mean_gray": {
-    "mean_delta": 43.341633485608135,
-    "median_delta": 28.551143558459962,
-    "positive_count": 36,
-    "negative_count": 2,
+    "mean_delta": 41.04292141583763,
+    "median_delta": 27.40846196688376,
+    "positive_count": 35,
+    "negative_count": 3,
     "unchanged_count": 16
   },
   "std_gray": {
-    "mean_delta": 27.49901013806039,
-    "median_delta": 29.465125254895582,
+    "mean_delta": 28.457569588664136,
+    "median_delta": 28.147426659656595,
     "positive_count": 33,
     "negative_count": 5,
     "unchanged_count": 16
   },
   "dynamic_range": {
-    "mean_delta": 104.14814814814815,
-    "median_delta": 125.0,
+    "mean_delta": 106.18518518518519,
+    "median_delta": 126.5,
     "positive_count": 35,
     "negative_count": 3,
     "unchanged_count": 16
   },
   "entropy": {
-    "mean_delta": 1.066266777338805,
-    "median_delta": 0.7384577989578247,
+    "mean_delta": 0.868865825511791,
+    "median_delta": 0.4801441431045532,
     "positive_count": 36,
     "negative_count": 2,
     "unchanged_count": 16
   },
   "edge_ratio": {
-    "mean_delta": 0.05540751646786521,
-    "median_delta": 0.027109207626718937,
-    "positive_count": 37,
-    "negative_count": 1,
+    "mean_delta": 0.04987924952318926,
+    "median_delta": 0.026326600145340717,
+    "positive_count": 36,
+    "negative_count": 2,
     "unchanged_count": 16
   }
 }
