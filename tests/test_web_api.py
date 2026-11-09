@@ -165,6 +165,49 @@ class AnalysisApiTests(unittest.TestCase):
         self.assertEqual(events, [{"type": "error", "error": events[0]["error"]}])
         self.assertIn("Không đọc được ảnh", events[0]["error"])
 
+    def test_health_endpoint(self) -> None:
+        """The wake-up ping answers quickly with a fixed payload."""
+        response = self.client.get("/api/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"status": "ok"})
+
+    def test_cors_only_for_configured_origins(self) -> None:
+        """GitHub Pages may call the API; other sites receive no CORS grant."""
+        import os
+        from unittest import mock
+
+        pages = "https://thanhthuy1308.github.io"
+        with mock.patch.dict(os.environ, {"ALLOWED_ORIGINS": pages}):
+            allowed = self.client.get("/api/health", headers={"Origin": pages})
+            other = self.client.get("/api/health", headers={"Origin": "https://example.com"})
+        self.assertEqual(allowed.headers.get("Access-Control-Allow-Origin"), pages)
+        self.assertIn("Content-Disposition", allowed.headers.get("Access-Control-Expose-Headers", ""))
+        self.assertNotIn("Access-Control-Allow-Origin", other.headers)
+        with mock.patch.dict(os.environ, {"ALLOWED_ORIGINS": ""}):
+            unset = self.client.get("/api/health", headers={"Origin": pages})
+        self.assertNotIn("Access-Control-Allow-Origin", unset.headers)
+
+    def test_prune_runtime_removes_only_expired_jobs(self) -> None:
+        """Old job folders are deleted; recent jobs and the staging folder stay."""
+        import os
+        import time
+
+        from web.app import prune_runtime
+
+        old_job, new_job = RUNTIME_DIR / "test-old-job", RUNTIME_DIR / "test-new-job"
+        for folder in (old_job, new_job, RUNTIME_DIR / "staging"):
+            folder.mkdir(parents=True, exist_ok=True)
+        two_days_ago = time.time() - 48 * 3600
+        os.utime(old_job, (two_days_ago, two_days_ago))
+        try:
+            prune_runtime(24)
+            self.assertFalse(old_job.exists())
+            self.assertTrue(new_job.exists())
+            self.assertTrue((RUNTIME_DIR / "staging").exists())
+        finally:
+            shutil.rmtree(old_job, ignore_errors=True)
+            shutil.rmtree(new_job, ignore_errors=True)
+
     def test_corrupt_image_returns_vietnamese_error_without_job_dir(self) -> None:
         """An undecodable PNG fails cleanly and leaves no orphan job directory."""
         before = {path.name for path in RUNTIME_DIR.iterdir()} if RUNTIME_DIR.exists() else set()

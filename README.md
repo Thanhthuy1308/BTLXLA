@@ -41,7 +41,8 @@ Bước 2 là bắt buộc: Flask phục vụ giao diện từ `frontend/dist`, 
 này trang web sẽ trống. Cần build lại sau mỗi lần sửa mã trong `frontend/src`.
 
 Ảnh tải lên và kết quả phân tích được lưu trong `web/runtime/` (đã bỏ qua trong
-Git). Thư mục này không tự dọn, hãy xóa khi dung lượng lớn.
+Git). Các kết quả cũ hơn 24 giờ được tự động xóa trước mỗi lần tải ảnh mới; đổi
+thời hạn bằng biến môi trường `RUNTIME_TTL_HOURS`.
 
 ## Decision rules
 
@@ -79,6 +80,37 @@ python scripts/build_web_samples.py
 | `POST /api/analyze` | Trường multipart `image`; trả về toàn bộ kết quả dạng JSON. |
 | `POST /api/analyze/stream` | Đầu vào giống trên; trả về JSON theo từng dòng: mỗi bước xử lý hoàn tất gửi một sự kiện `step`, cuối cùng là sự kiện `result` (hoặc `error`). |
 | `GET /results/<job_id>/<file>` | Các tệp do một lần phân tích tạo ra; thêm `?download=1` để tải xuống. |
+| `GET /api/health` | Kiểm tra server còn hoạt động; giao diện gọi khi mở trang Phân tích để đánh thức server đang ngủ. |
+
+## Deployment
+
+Giao diện được đăng lên **GitHub Pages** (`https://thanhthuy1308.github.io/BTLXLA/`),
+còn server phân tích (Flask + OpenCV) chạy trên **Render** (gói miễn phí) bằng
+`Dockerfile` ở thư mục gốc. Cả hai tự triển khai lại khi có thay đổi được merge vào
+`main`:
+
+| Thành phần | Cấu hình | Tự triển khai khi thay đổi |
+| --- | --- | --- |
+| Giao diện trên GitHub Pages | `.github/workflows/deploy-pages.yml` | `frontend/` |
+| Server trên Render | `render.yaml` + `Dockerfile` | `src/`, `web/app.py`, `frontend/`, `Dockerfile`, `pyproject.toml` |
+
+Cấu hình lần đầu:
+
+1. Đăng nhập Render bằng tài khoản GitHub, chọn **New → Blueprint**, chọn repository
+   này rồi bấm **Apply**. Render đọc `render.yaml`, build `Dockerfile` và cấp địa
+   chỉ dạng `https://btlxla.onrender.com`.
+2. Trong repository GitHub, mở *Settings → Secrets and variables → Actions →
+   Variables* và thêm `API_BASE_URL` = địa chỉ Render ở bước 1.
+3. Mở *Settings → Pages*, chọn **Source: GitHub Actions**.
+4. Vào tab *Actions*, chạy workflow **Deploy frontend to GitHub Pages** bằng
+   **Run workflow** (các lần sau sẽ tự chạy khi merge vào `main`).
+
+Server chỉ nhận yêu cầu từ trang GitHub Pages của dự án; đổi danh sách này bằng
+biến môi trường `ALLOWED_ORIGINS` trên Render.
+
+Gói miễn phí của Render có 512 MB RAM và tự ngủ sau 15 phút không có yêu cầu; lần
+phân tích đầu tiên sau đó có thể mất khoảng một phút để server khởi động lại. Trang
+Phân tích tự gửi yêu cầu đánh thức ngay khi được mở.
 
 ## Experimental Evaluation
 

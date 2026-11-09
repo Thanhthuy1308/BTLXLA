@@ -8,6 +8,7 @@ import HistoryTable from "../components/HistoryTable";
 import { DropZone, PipelineChecklist, RunningState, SampleGrid, currentStep } from "../components/UploadPanels";
 import type { RunStatus } from "../components/UploadPanels";
 import VerdictCard from "../components/VerdictCard";
+import { apiUrl, assetUrl } from "../lib/config";
 import { fileSize, fixed, validate } from "../lib/format";
 import { useAnalysisHistory } from "../lib/history";
 import type { HistoryEntry } from "../lib/history";
@@ -47,6 +48,11 @@ export default function StudioPage() {
   const [dragging, setDragging] = useState(false);
   const running = status === "running";
   const hasImage = Boolean(file || result);
+
+  /** Wake a sleeping remote server while the user is still choosing an image. */
+  useEffect(() => {
+    void fetch(apiUrl("/api/health")).catch(() => { /* the real request reports errors */ });
+  }, []);
 
   /** Revoke the temporary browser thumbnail whenever the user changes the input image. */
   useEffect(() => {
@@ -100,7 +106,7 @@ export default function StudioPage() {
     const sample = SAMPLES.find((item) => item.key === key);
     if (!sample) return;
     try {
-      const blob = await (await fetch(`/samples/${sample.file}`)).blob();
+      const blob = await (await fetch(assetUrl(`samples/${sample.file}`))).blob();
       accept(new File([blob], sample.file, { type: "image/jpeg" }));
     } catch {
       setError("Không tải được ảnh mẫu.");
