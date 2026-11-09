@@ -11,6 +11,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import cv2
+import matplotlib
+# Figures are written to PNG files by the CLI and Flask interface. The non-GUI
+# backend keeps those server-side requests deterministic on Windows and avoids
+# attempting to open a desktop plotting window from a request thread.
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -19,6 +24,13 @@ import numpy as np
 # on the 8-bit grayscale scale [0, 255] and are reported in the comparison figure.
 DARK_MEAN_THRESHOLD = 85.0
 LOW_CONTRAST_STD_THRESHOLD = 45.0
+# Descriptive-only rule: a bright image is reported to the user but never
+# darkened automatically, because the project scope enhances only dark and
+# low-contrast inputs. 170 mirrors the dark threshold around the mid-gray 127.5.
+BRIGHT_MEAN_THRESHOLD = 170.0
+# Pixels at or below/above these levels are counted as clipped shadows/highlights.
+CLIP_LOW_LEVEL = 5
+CLIP_HIGH_LEVEL = 250
 
 # Enhancement parameters: gamma < 1 brightens shadows; percentile bounds reduce the
 # influence of isolated outlier pixels when stretching contrast.
@@ -27,8 +39,15 @@ PERCENTILE_LOW = 2.0
 PERCENTILE_HIGH = 98.0
 
 # Fixed Canny thresholds make edge-density changes comparable across all images.
-CANNY_LOW_THRESHOLD = 100
-CANNY_HIGH_THRESHOLD = 200
+# A Gaussian pre-blur implements step 1 of the classical Canny algorithm, which
+# cv2.Canny itself does not perform. Without it, the sensor noise lifted by gamma
+# and stretching is detected as dense false edges (e.g. LOL_LOW_10: 18.2% "edges"
+# raw vs 4.7% coherent structure after blur). 50/150 keeps the 1:3 ratio
+# recommended by Canny and was chosen on the representative benchmark samples.
+CANNY_BLUR_KERNEL = (5, 5)
+CANNY_BLUR_SIGMA = 1.4
+CANNY_LOW_THRESHOLD = 50
+CANNY_HIGH_THRESHOLD = 150
 
 
 @dataclass(frozen=True)
@@ -108,8 +127,51 @@ def entropy_from_histogram(values: np.ndarray) -> float:
 
 
 def canny_edges(gray: np.ndarray) -> np.ndarray:
-    """Detect edges with fixed thresholds so before/after ratios remain comparable."""
-    return cv2.Canny(gray, CANNY_LOW_THRESHOLD, CANNY_HIGH_THRESHOLD)
+    """Smooth with a Gaussian, then detect edges with fixed, comparable thresholds."""
+    smoothed = cv2.GaussianBlur(gray, CANNY_BLUR_KERNEL, CANNY_BLUR_SIGMA)
+    return cv2.Canny(smoothed, CANNY_LOW_THRESHOLD, CANNY_HIGH_THRESHOLD)
+
+
+def psnr_against_reference(candidate_bgr: np.ndarray, reference_bgr: np.ndarray) -> float:
+    """Return grayscale PSNR in dB for one spatially aligned reference pair.
+
+    PSNR is only valid when the candidate and reference depict the same pixels.
+    This project therefore uses it exclusively for the paired LOL subset rather
+    than unpaired ExDark, SICE, or personal samples.
+    """
+    candidate_gray, reference_gray = to_gray(candidate_bgr), to_gray(reference_bgr)
+    if candidate_gray.shape != reference_gray.shape:
+        raise ValueError("PSNR requires candidate and reference images with identical dimensions.")
+    # OpenCV guards zero MSE with an epsilon and returns an arbitrary large,
+    # finite value. By definition, an exact match has an infinite PSNR score.
+    if np.array_equal(candidate_gray, reference_gray):
+        return float("inf")
+    return float(cv2.PSNR(reference_gray, candidate_gray))
+
+
+def ssim_against_reference(candidate_bgr: np.ndarray, reference_bgr: np.ndarray) -> float:
+    """Return a deterministic grayscale SSIM score for an aligned reference pair.
+
+    The implementation follows the standard local-mean/local-variance SSIM
+    formulation with an 11×11 Gaussian window.  It avoids adding a separate
+    dependency while making the score definition explicit in the source.
+    """
+    candidate = to_gray(candidate_bgr).astype(np.float64)
+    reference = to_gray(reference_bgr).astype(np.float64)
+    if candidate.shape != reference.shape:
+        raise ValueError("SSIM requires candidate and reference images with identical dimensions.")
+
+    # SSIM constants assume the documented 8-bit intensity range [0, 255].
+    c1 = (0.01 * 255) ** 2
+    c2 = (0.03 * 255) ** 2
+    mu_candidate = cv2.GaussianBlur(candidate, (11, 11), 1.5)
+    mu_reference = cv2.GaussianBlur(reference, (11, 11), 1.5)
+    sigma_candidate = cv2.GaussianBlur(candidate * candidate, (11, 11), 1.5) - mu_candidate * mu_candidate
+    sigma_reference = cv2.GaussianBlur(reference * reference, (11, 11), 1.5) - mu_reference * mu_reference
+    covariance = cv2.GaussianBlur(candidate * reference, (11, 11), 1.5) - mu_candidate * mu_reference
+    numerator = (2 * mu_candidate * mu_reference + c1) * (2 * covariance + c2)
+    denominator = (mu_candidate**2 + mu_reference**2 + c1) * (sigma_candidate + sigma_reference + c2)
+    return float(np.mean(numerator / denominator))
 
 
 def measure(image_bgr: np.ndarray) -> ImageMetrics:
@@ -148,6 +210,32 @@ def is_low_contrast(metrics: ImageMetrics, threshold: float = LOW_CONTRAST_STD_T
     return metrics.std_gray < threshold
 
 
+def is_bright(metrics: ImageMetrics, threshold: float = BRIGHT_MEAN_THRESHOLD) -> bool:
+    """Report a bright tendency; this rule describes the image and triggers no transform."""
+    return metrics.mean_gray > threshold
+
+
+def clipping_ratios(image_bgr: np.ndarray) -> tuple[float, float]:
+    """Return the share of near-black and near-white grayscale pixels.
+
+    A large spike at either end of the histogram means detail has been lost
+    (crushed shadows or blown highlights), which the global Mean and Standard
+    Deviation alone cannot reveal.
+    """
+    gray = to_gray(image_bgr)
+    return (
+        float(np.count_nonzero(gray <= CLIP_LOW_LEVEL) / gray.size),
+        float(np.count_nonzero(gray >= CLIP_HIGH_LEVEL) / gray.size),
+    )
+
+
+def stretch_bounds(image_bgr: np.ndarray, low: float = PERCENTILE_LOW, high: float = PERCENTILE_HIGH) -> tuple[float, float]:
+    """Return the (r_min, r_max) lightness percentiles used by ``contrast_stretch``."""
+    lightness = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)[:, :, 0]
+    minimum, maximum = np.percentile(lightness, [low, high])
+    return float(minimum), float(maximum)
+
+
 def gamma_correct(image_bgr: np.ndarray, gamma: float = GAMMA_FOR_DARK_IMAGES) -> np.ndarray:
     """Brighten dark tones with ``y = 255 * (x / 255)^gamma``.
 
@@ -159,21 +247,23 @@ def gamma_correct(image_bgr: np.ndarray, gamma: float = GAMMA_FOR_DARK_IMAGES) -
 
 
 def contrast_stretch(image_bgr: np.ndarray, low: float = PERCENTILE_LOW, high: float = PERCENTILE_HIGH) -> np.ndarray:
-    """Stretch each color channel between robust intensity percentiles.
+    """Stretch only perceptual lightness between robust intensity percentiles.
 
-    Channels with no measurable span are copied unchanged, preventing division by
-    zero and avoiding artificial changes to a constant-color image.
+    Stretching B, G, and R channels independently changes their ratios and may
+    introduce false purple/green colour casts in very dark scenes.  Lab separates
+    lightness (L) from chromatic components (a and b), so adjusting L preserves
+    the original hue while still expanding the image's visible tonal range.
     """
-    result = np.empty_like(image_bgr)
-    for channel in range(3):
-        values = image_bgr[:, :, channel]
-        minimum, maximum = np.percentile(values, [low, high])
-        if maximum <= minimum:
-            result[:, :, channel] = values
-        else:
-            scaled = (values.astype(np.float32) - minimum) * (255.0 / (maximum - minimum))
-            result[:, :, channel] = np.clip(scaled, 0, 255).astype(np.uint8)
-    return result
+    lab = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2LAB)
+    lightness = lab[:, :, 0]
+    minimum, maximum = stretch_bounds(image_bgr, low, high)
+    if maximum <= minimum:
+        return image_bgr.copy()
+
+    # Percentile clipping limits the effect of isolated highlight/shadow outliers.
+    scaled = (lightness.astype(np.float32) - minimum) * (255.0 / (maximum - minimum))
+    lab[:, :, 0] = np.clip(scaled, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 
 def enhance(
@@ -231,28 +321,28 @@ def save_comparison_figure(
 
     # Top row: visual appearance and tonal distribution before/after processing.
     axes[0, 0].imshow(cv2.cvtColor(original_bgr, cv2.COLOR_BGR2RGB))
-    axes[0, 0].set_title(f"Original\nmean={original_metrics.mean_gray:.1f}, std={original_metrics.std_gray:.1f}")
+    axes[0, 0].set_title(f"Ảnh gốc\nμ={original_metrics.mean_gray:.1f}, σ={original_metrics.std_gray:.1f}")
     axes[0, 1].imshow(cv2.cvtColor(enhanced_bgr, cv2.COLOR_BGR2RGB))
-    axes[0, 1].set_title(f"Enhanced\nmean={enhanced_metrics.mean_gray:.1f}, std={enhanced_metrics.std_gray:.1f}")
-    axes[0, 2].plot(histogram(original_gray), color="#4C78A8", label="original")
-    axes[0, 2].plot(histogram(enhanced_gray), color="#F58518", label="enhanced")
-    axes[0, 2].set_title("Grayscale histogram")
+    axes[0, 1].set_title(f"Ảnh sau xử lý\nμ={enhanced_metrics.mean_gray:.1f}, σ={enhanced_metrics.std_gray:.1f}")
+    axes[0, 2].plot(histogram(original_gray), color="#4C78A8", label="ảnh gốc")
+    axes[0, 2].plot(histogram(enhanced_gray), color="#F58518", label="sau xử lý")
+    axes[0, 2].set_title("Histogram mức xám")
     axes[0, 2].set_xlim(0, 255)
     axes[0, 2].legend()
 
     # Bottom row: structural response and the exact rule/metric context.
     axes[1, 0].imshow(canny_edges(original_gray), cmap="gray")
-    axes[1, 0].set_title(f"Original Canny\nedge ratio={original_metrics.edge_ratio:.3%}")
+    axes[1, 0].set_title(f"Canny ảnh gốc\ntỉ lệ biên={original_metrics.edge_ratio:.3%}")
     axes[1, 1].imshow(canny_edges(enhanced_gray), cmap="gray")
-    axes[1, 1].set_title(f"Enhanced Canny\nedge ratio={enhanced_metrics.edge_ratio:.3%}")
+    axes[1, 1].set_title(f"Canny ảnh sau xử lý\ntỉ lệ biên={enhanced_metrics.edge_ratio:.3%}")
     axes[1, 2].axis("off")
     axes[1, 2].text(
         0.02, 0.95,
-        "Decision rules\n"
-        f"dark: mean < {DARK_MEAN_THRESHOLD:.0f}\n"
-        f"low contrast: std < {LOW_CONTRAST_STD_THRESHOLD:.0f}\n\n"
+        "Quy tắc phân loại\n"
+        f"ảnh tối: μ < {DARK_MEAN_THRESHOLD:.0f}\n"
+        f"tương phản thấp: σ < {LOW_CONTRAST_STD_THRESHOLD:.0f}\n\n"
         f"entropy: {original_metrics.entropy:.2f} → {enhanced_metrics.entropy:.2f}\n"
-        f"range: {original_metrics.dynamic_range:.1f} → {enhanced_metrics.dynamic_range:.1f}",
+        f"dải động: {original_metrics.dynamic_range:.1f} → {enhanced_metrics.dynamic_range:.1f}",
         va="top", fontsize=11,
     )
     # Image and edge panes should not display coordinate axes in the final report.
@@ -263,4 +353,52 @@ def save_comparison_figure(
     figure.tight_layout()
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close(figure)
+
+
+def save_histogram_comparison(
+    original_bgr: np.ndarray,
+    enhanced_bgr: np.ndarray,
+    output_path: str | Path,
+) -> None:
+    """Write the exact 256-bin before/after distributions as a standalone figure.
+
+    The web client displays this server-generated figure rather than recreating
+    bins in JavaScript.  Consequently, the visual evidence and the calculated
+    Mean/Standard Deviation always come from the same pixels and pipeline run.
+    """
+    figure, axes = plt.subplots(1, 2, figsize=(12, 3.8))
+
+    for axis, image, title, color in (
+        (axes[0], original_bgr, "Histogram ảnh gốc", "#0b57d0"),
+        (axes[1], enhanced_bgr, "Histogram ảnh sau xử lý", "#185abc"),
+    ):
+        gray = to_gray(image)
+        counts = histogram(gray)
+        mean_value = float(gray.mean())
+        axis.bar(np.arange(256), counts, width=1.0, color=color, edgecolor=color)
+        # Each panel keeps its own y-axis: a sharply peaked dark histogram would
+        # otherwise flatten the wider enhanced distribution into an unreadable strip.
+        # The y-limit ignores the two extreme bins so a clipped spike at 0 or 255
+        # cannot hide the rest of the distribution; the spike is labelled instead.
+        inner_peak = counts[1:255].max() if counts[1:255].max() > 0 else counts.max()
+        axis.set_ylim(0, inner_peak * 1.15)
+        for level in (0, 255):
+            if counts[level] > inner_peak * 1.15:
+                axis.annotate(
+                    f"mức {level}: {int(counts[level]):,} px".replace(",", "."),
+                    xy=(level, inner_peak * 1.12), ha="left" if level == 0 else "right",
+                    va="top", fontsize=9, color="#b3261e",
+                )
+        axis.axvline(mean_value, color="#b3261e", linestyle="--", linewidth=1.4, label=f"μ = {mean_value:.1f}")
+        axis.legend(loc="upper left", frameon=False, fontsize=9)
+        axis.set_title(title, loc="left", fontsize=11, fontweight="bold")
+        axis.set_xlim(0, 255)
+        axis.set_xlabel("Mức xám (0–255)")
+        axis.grid(axis="y", alpha=0.18)
+
+    axes[0].set_ylabel("Số pixel")
+    figure.tight_layout()
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output_path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(figure)
