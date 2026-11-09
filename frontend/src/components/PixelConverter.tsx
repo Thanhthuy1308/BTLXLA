@@ -103,7 +103,8 @@ export default function PixelConverter({ originalSrc, enhancedSrc }: { originalS
 
       /** Match the canvas backing store to its CSS size and device pixel ratio. */
       const resize = () => {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // 1.5× is visually indistinguishable here and draws ~44% fewer pixels than 2×.
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         const width = Math.max(1, Math.round(view.clientWidth * dpr));
         view.width = width;
         view.height = Math.round(width * ratio);
@@ -221,15 +222,22 @@ export default function PixelConverter({ originalSrc, enhancedSrc }: { originalS
       }
 
       const start = performance.now();
+      // 30 fps is plenty for the sweep; during the two hold phases nothing moves,
+      // so the frame is drawn once on entry and then left alone.
+      let last = 0;
+      let heldPhase = "";
       const tick = (now: number) => {
         if (cancelled) return;
-        if (visible) {
-          const { sweep, fade, phase } = timeline(now - start);
-          drawImage(sweep, fade, now);
-          drawHistogram(sweep * (1 - fade));
-          label(phase, sweep);
-        }
         frame = requestAnimationFrame(tick);
+        if (!visible || now - last < 1000 / 30) return;
+        last = now;
+        const { sweep, fade, phase } = timeline(now - start);
+        const holding = phase === "start" || phase === "done";
+        if (holding && heldPhase === phase) return;
+        heldPhase = holding ? phase : "";
+        drawImage(sweep, fade, now);
+        drawHistogram(sweep * (1 - fade));
+        label(phase, sweep);
       };
       frame = requestAnimationFrame(tick);
     }).catch(() => { /* The hero is decorative; a failed load simply leaves the frame empty. */ });
@@ -241,7 +249,7 @@ export default function PixelConverter({ originalSrc, enhancedSrc }: { originalS
     };
   }, [originalSrc, enhancedSrc]);
 
-  return <Box sx={{ borderRadius: 2, overflow: "hidden", bgcolor: "#0f1115", color: "#e8eaed" }}>
+  return <Box sx={{ borderRadius: "12px", overflow: "hidden", bgcolor: "#0f1115", color: "#e8eaed" }}>
     <Box component="canvas" ref={imageCanvas} role="img" aria-label="Minh hoạ quá trình cải thiện một ảnh thiếu sáng: ảnh tối được xử lý từng vùng pixel thành ảnh sáng và rõ hơn" sx={{ width: "100%", display: "block" }} />
     <Box sx={{ px: 2, pt: 1.5, pb: 1.75 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", gap: 2, flexWrap: "wrap" }}>

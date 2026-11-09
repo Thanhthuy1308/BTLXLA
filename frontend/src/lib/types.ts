@@ -38,4 +38,4 @@ export type AnalysisResult = {
 };
 
 /** Result tabs in the studio. */
-export type ResultTab = "Overview" | "Transformations" | "Edges" | "History";
+export type ResultTab = "Overview" | "Transformations" | "Edges";

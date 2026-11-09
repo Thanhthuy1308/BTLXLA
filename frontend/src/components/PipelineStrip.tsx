@@ -11,7 +11,7 @@ export default function PipelineStrip({ stages, onOpen }: { stages: PipelineStag
     {stages.map((stage, index) => <Box key={stage.key} sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: "center", flex: 1, minWidth: 0 }}>
       {index > 0 && <Box aria-hidden="true" sx={{ px: { md: .75 }, py: { xs: .25, md: 0 }, color: tone.outlineVariant, fontSize: 22, fontWeight: 700, transform: { xs: "rotate(90deg)", md: "none" } }}>→</Box>}
       <motion.div {...reveal} transition={{ duration: .25, delay: index * .06 }} style={{ flex: 1, minWidth: 0, width: "100%", alignSelf: "stretch" }}>
-        <Box sx={{ height: "100%", p: 1.25, borderRadius: 1.5, border: `1px solid ${stage.final ? tone.primary : tone.outline}`, bgcolor: stage.final ? "#f8faff" : "#fff" }}>
+        <Box sx={{ height: "100%", p: 1.25, borderRadius: "12px", border: `1px solid ${stage.final ? tone.primary : tone.outline}`, bgcolor: stage.final ? "#f8faff" : "#fff" }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
             <Box sx={{ width: 22, height: 22, flexShrink: 0, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, color: "#fff", bgcolor: stage.final ? tone.primary : tone.onSurfaceVariant }}>{index + 1}</Box>
             <Typography sx={{ fontWeight: 700, fontSize: 14 }} noWrap>{stage.label}{stage.final ? " · kết quả" : ""}</Typography>

@@ -5,15 +5,16 @@ import { PIPELINE_STEPS } from "../lib/pipeline";
 import type { StepKey, StepTimes } from "../lib/pipeline";
 import { assetUrl } from "../lib/config";
 import { SAMPLES } from "../lib/samples";
-import { tone } from "../lib/theme";
+import ScanPreview from "./ScanPreview";
+import { radius, tone } from "../lib/theme";
 
 export type RunStatus = "idle" | "running" | "done" | "error";
 
 /** Clickable sample tiles: one image per classification case. */
 export function SampleGrid({ onPick, disabled, compact = false }: { onPick: (key: string) => void; disabled: boolean; compact?: boolean }) {
   return <Box sx={{ display: "grid", gridTemplateColumns: compact ? "1fr 1fr" : { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: compact ? 1 : 1.5 }}>
-    {SAMPLES.map((sample) => <ButtonBase key={sample.key} disabled={disabled} onClick={() => onPick(sample.key)} focusRipple sx={{ display: "block", textAlign: "left", borderRadius: 1, p: .5, "&:hover": { bgcolor: tone.surfaceContainer } }}>
-      <Box component="img" src={assetUrl(`samples/${sample.file}`)} alt="" sx={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block", borderRadius: .75, bgcolor: tone.surfaceContainer }} />
+    {SAMPLES.map((sample) => <ButtonBase key={sample.key} disabled={disabled} onClick={() => onPick(sample.key)} focusRipple sx={{ display: "block", textAlign: "left", borderRadius: radius.card, p: .5, "&:hover": { bgcolor: tone.surfaceContainer } }}>
+      <Box component="img" src={assetUrl(`samples/${sample.file}`)} alt="" sx={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block", borderRadius: radius.media, bgcolor: tone.surfaceContainer }} />
       <Typography sx={{ mt: .5, fontSize: compact ? 12 : 13, fontWeight: 650, lineHeight: 1.25 }}>{sample.label}</Typography>
     </ButtonBase>)}
   </Box>;
@@ -22,7 +23,7 @@ export function SampleGrid({ onPick, disabled, compact = false }: { onPick: (key
 /** Large drop target shown before any image is chosen. */
 export function DropZone({ dragging, onBrowse, children }: { dragging: boolean; onBrowse: () => void; children?: ReactNode }) {
   return <Box>
-    <ButtonBase onClick={onBrowse} focusRipple sx={{ width: "100%", minHeight: 280, display: "grid", placeItems: "center", textAlign: "center", borderRadius: 2, border: `2px dashed ${dragging ? tone.primary : tone.outlineVariant}`, bgcolor: dragging ? tone.info : "#fafbfc", transition: "background-color .15s, border-color .15s", px: 3 }}>
+    <ButtonBase onClick={onBrowse} focusRipple sx={{ width: "100%", minHeight: 280, display: "grid", placeItems: "center", textAlign: "center", borderRadius: radius.card, border: `2px dashed ${dragging ? tone.primary : tone.outlineVariant}`, bgcolor: dragging ? tone.info : "#fafbfc", transition: "background-color .15s, border-color .15s", px: 3 }}>
       <Box>
         <Box aria-hidden="true" sx={{ mx: "auto", width: 52, height: 52, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: tone.info, color: tone.primary, fontSize: 28, fontWeight: 500 }}>↑</Box>
         <Typography variant="h3" component="p" sx={{ mt: 2 }}>{dragging ? "Thả ảnh vào đây" : "Kéo-thả ảnh vào đây hoặc bấm để chọn"}</Typography>
@@ -66,11 +67,12 @@ export function PipelineChecklist({ status, times, seconds }: { status: RunStatu
 }
 
 /** First run has no previous result to keep on screen: show the real current step. */
-export function RunningState({ times, seconds }: { times: StepTimes; seconds: number }) {
+export function RunningState({ times, seconds, src }: { times: StepTimes; seconds: number; src?: string }) {
   const active = currentStep(times);
   const index = active ? PIPELINE_STEPS.findIndex((step) => step.key === active) : PIPELINE_STEPS.length - 1;
   const doneCount = PIPELINE_STEPS.filter((step) => times[step.key] !== undefined).length;
-  return <Box sx={{ minHeight: 360, display: "grid", placeItems: "center", textAlign: "center" }}><Box sx={{ width: 360, maxWidth: "100%" }}>
+  return <Box sx={{ minHeight: 360, display: "grid", placeItems: "center", textAlign: "center" }}><Box sx={{ width: src ? 520 : 360, maxWidth: "100%" }}>
+    {src && <Box sx={{ mb: 2.5 }}><ScanPreview src={src} /></Box>}
     <LinearProgress variant={doneCount ? "determinate" : "indeterminate"} value={(doneCount / PIPELINE_STEPS.length) * 100} sx={{ height: 4 }} />
     <Typography variant="h3" component="p" sx={{ mt: 3 }}>{PIPELINE_STEPS[index].label}…</Typography>
     <Typography color="text.secondary" sx={{ mt: .8 }} aria-live="polite">Bước {index + 1}/{PIPELINE_STEPS.length} · {fixed(seconds, 1)} giây</Typography>

@@ -8,6 +8,21 @@ export const tone = {
   before: "#80868b",
 };
 
+/** Three corner radii only: pills for controls, 12px for cards, 8px for images. */
+export const radius = { pill: "999px", card: "12px", media: "8px" };
+
+/**
+ * One fixed colour pair per classification, reused by chips, the conclusion card,
+ * the comparison table and the threshold gauges so a category reads the same everywhere.
+ */
+export const conditionTone = {
+  dark: { bg: "#e3e8f2", fg: "#1f3a68", zone: "#aab6cf" },
+  lowContrast: { bg: "#fde8da", fg: "#8a3b12", zone: "#f4b38b" },
+  bright: { bg: "#fdf2c9", fg: "#6e5200", zone: "#f3d36b" },
+  ok: { bg: "#e2f3e7", fg: "#1e6b3a", zone: "#a6d8b3" },
+  mid: { zone: "#d2e3fc" },
+};
+
 /** Shared entrance animation for result blocks. */
 export const reveal = { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } };
 

@@ -1,5 +1,6 @@
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { AppBar, Box, Button, Stack, Tab, Tabs, Toolbar, Typography } from "@mui/material";
+import { assetUrl } from "../lib/config";
 import { tone } from "../lib/theme";
 
 export default function Header() {
@@ -7,8 +8,8 @@ export default function Header() {
   const selectedTab = location.pathname.startsWith("/studio") ? 1 : 0;
   return <AppBar position="sticky" color="transparent" elevation={0} sx={{ bgcolor: "rgba(255,255,255,.96)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${tone.outline}` }}>
     <Toolbar sx={{ minHeight: { xs: "60px !important", md: "72px !important" }, px: { xs: 1.5, md: 4 }, gap: { xs: 1, md: 3 } }}>
-      <Stack direction="row" spacing={1.4} component={RouterLink} to="/" sx={{ alignItems: "center", minWidth: { md: 260 }, color: "inherit", textDecoration: "none" }}>
-        <Box sx={{ width: 38, height: 38, display: "grid", placeItems: "center", borderRadius: 1, bgcolor: tone.primary, color: "white", fontWeight: 700 }}>H</Box>
+      <Stack direction="row" spacing={1.4} component={RouterLink} to="/" aria-label="Histogram Studio, về trang Giới thiệu" sx={{ alignItems: "center", minWidth: { md: 260 }, color: "inherit", textDecoration: "none" }}>
+        <Box component="img" src={assetUrl("favicon.svg")} alt="" sx={{ width: 38, height: 38, display: "block", flexShrink: 0 }} />
         <Box sx={{ display: { xs: "none", sm: "block" } }}><Typography sx={{ fontWeight: 700, lineHeight: 1.15 }}>Histogram Studio</Typography><Typography variant="caption" color="text.secondary">Phân tích độ sáng và độ tương phản</Typography></Box>
       </Stack>
       <Tabs value={selectedTab} sx={{ minHeight: 48, "& .MuiTab-root": { minHeight: 48, minWidth: { xs: 0, md: 90 }, px: { xs: 1.25, md: 2 }, textTransform: "none", fontWeight: 650 } }}>
