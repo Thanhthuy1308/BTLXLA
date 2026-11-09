@@ -14,9 +14,9 @@ treat a larger metric value alone as proof of subjective image quality.
 
 ## Aggregate observations
 
-- Mean gray level changed by **43.34** on average (median **28.55**); it increased for 36 samples, decreased for 2, and was unchanged for 16.
-- Robust dynamic range changed by **104.15** on average (median **125.00**); it increased for 35 samples.
-- Canny edge density changed by **0.0554** on average (median **0.0271**); it increased for 37 samples. This is a structural-response indicator, not a quality score: extra edges may reflect noise or over-enhancement.
+- Mean gray level changed by **41.04** on average (median **27.41**); it increased for 35 samples, decreased for 3, and was unchanged for 16.
+- Robust dynamic range changed by **106.19** on average (median **126.50**); it increased for 35 samples.
+- Canny edge density changed by **0.0499** on average (median **0.0263**); it increased for 36 samples. This is a structural-response indicator, not a quality score: extra edges may reflect noise or over-enhancement.
 
 ## Recommended qualitative cases
 
@@ -26,10 +26,10 @@ enhanced images before making any visual-quality claim.
 
 | Reason | Image | Source | Condition | Operation | Δ mean | Δ range | Δ edge density |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: |
-| largest_brightness_gain | LOL_LOW_10 | LOL | underexposed | gamma+contrast_stretch | 142.79 | 214.00 | 0.1646 |
-| largest_contrast_gain | SICE_07 | SICE | underexposed | gamma+contrast_stretch | 79.80 | 237.00 | 0.0338 |
-| largest_edge_density_gain | LOL_LOW_12 | LOL | underexposed | gamma+contrast_stretch | 123.70 | 198.00 | 0.3552 |
-| brightness_reduction_case | LCV_06 | derived | synthetic_low_contrast | contrast_stretch | -13.84 | 170.00 | 0.0656 |
+| largest_brightness_gain | LOL_LOW_10 | LOL | underexposed | gamma+contrast_stretch | 132.14 | 223.00 | 0.1824 |
+| largest_contrast_gain | SICE_07 | SICE | underexposed | gamma+contrast_stretch | 67.06 | 236.00 | 0.0331 |
+| largest_edge_density_gain | LOL_LOW_12 | LOL | underexposed | gamma+contrast_stretch | 119.59 | 214.00 | 0.3576 |
+| brightness_reduction_case | LCV_06 | derived | synthetic_low_contrast | contrast_stretch | -17.55 | 171.00 | 0.0644 |
 | unchanged_control | SICE_08 | SICE | overexposed | identity | 0.00 | 0.00 | 0.0000 |
 
 

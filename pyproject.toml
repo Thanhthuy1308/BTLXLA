@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Histogram-based image brightness and contrast analysis"
 requires-python = ">=3.11"
 dependencies = [
+    "Flask>=3.1,<4",
     "matplotlib>=3.8",
     "numpy>=1.26",
     "opencv-python>=4.8",
@@ -15,4 +16,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
+# The importable modules live in src/; without package-dir setuptools looks in
+# the repository root and builds a wheel that contains no code at all.
+package-dir = { "" = "src" }
 py-modules = ["analysis", "datasets"]

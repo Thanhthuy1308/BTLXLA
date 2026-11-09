@@ -1,0 +1,42 @@
+[
+  {
+    "key": "dark_low_contrast",
+    "file": "dark_low_contrast.jpg",
+    "label": "Ảnh tối, tương phản thấp",
+    "source": "LOL_LOW_10",
+    "operation": "gamma+contrast_stretch",
+    "dark": true,
+    "low_contrast": true,
+    "bright": false
+  },
+  {
+    "key": "dark",
+    "file": "dark.jpg",
+    "label": "Ảnh tối",
+    "source": "EXDARK_03",
+    "operation": "gamma",
+    "dark": true,
+    "low_contrast": false,
+    "bright": false
+  },
+  {
+    "key": "low_contrast",
+    "file": "low_contrast.jpg",
+    "label": "Ảnh tương phản thấp",
+    "source": "LCV_06",
+    "operation": "contrast_stretch",
+    "dark": false,
+    "low_contrast": true,
+    "bright": false
+  },
+  {
+    "key": "bright",
+    "file": "bright.jpg",
+    "label": "Ảnh sáng, không cần xử lý",
+    "source": "SICE_08",
+    "operation": "identity",
+    "dark": false,
+    "low_contrast": false,
+    "bright": true
+  }
+]
